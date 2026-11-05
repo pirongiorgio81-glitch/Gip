@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1a0010">
+  <meta name="description" content="Il Labirinto di Gip - Gioco 3D">
+  <title>Il Labirinto di Gip</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Dancing+Script:wght@600;700&family=Source+Sans+3:wght@400;500;600;700;800&display=swap');
+
+    :root{
+      --bg:#18000e; --pink:#ff4f93; --pink-light:#ffd2e3;
+      --gold:#ffd166; --coin:#ffd54a; --green:#55dc8b;
+      --safe-top:env(safe-area-inset-top, 0px);
+      --safe-bottom:env(safe-area-inset-bottom, 0px);
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body{
+      width:100vw; height:100vh; height:100dvh;
+      margin:0; overflow:hidden; background:var(--bg);
+      color:#fff7fb; font-family:"Source Sans 3", Arial, sans-serif;
+      touch-action:manipulation;
+    }
+    body{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:radial-gradient(circle at 50% 25%, #822359 0%, #3c0827 42%, #18000e 100%);
+    }
+    .maze{
+      position:fixed; inset:-20%; opacity:.3;
+      background-image: linear-gradient(90deg, rgba(255,157,198,.2) 2px, transparent 2px), linear-gradient(rgba(255,157,198,.2) 2px, transparent 2px);
+      background-size:52px 52px; transform:rotate(-8deg);
+      mask-image:radial-gradient(circle at center, black 15%, transparent 72%);
+      -webkit-mask-image:radial-gradient(circle at center, black 15%, transparent 72%);
+      pointer-events:none; animation:mazeMove 22s linear infinite;
+    }
+    .glow{
+      position:fixed; width:min(94vw, 560px); aspect-ratio:1; border-radius:50%;
+      background:rgba(255,89,155,.2); filter:blur(38px); pointer-events:none;
+      animation:glowPulse 3.4s ease-in-out infinite;
+    }
+    .sparks{ position:fixed; inset:0; overflow:hidden; pointer-events:none; }
+    .spark{
+      position:absolute; bottom:-30px; color:#ffe4ef; opacity:0;
+      text-shadow:0 0 8px #ff68a8, 0 0 18px #e12d7c;
+      animation:sparkFloat linear infinite;
+    }
+    .menu{
+      position:relative; z-index:2; width:min(92vw, 500px);
+      max-height:calc(100dvh - 24px);
+      padding:calc(23px + var(--safe-top)) 22px calc(22px + var(--safe-bottom));
+      overflow:auto;
+      border:1px solid rgba(255,203,225,.55); border-radius:27px;
+      background:linear-gradient(145deg, rgba(118,23,70,.95), rgba(38,1,23,.97));
+      text-align:center;
+      box-shadow:0 20px 70px rgba(0,0,0,.62), 0 0 48px rgba(255,66,143,.35), inset 0 1px rgba(255,255,255,.18);
+      animation:menuIn .8s cubic-bezier(.2,.85,.3,1) both;
+    }
+    .mini-hearts{
+      margin-bottom:7px; color:#ffd3e5;
+      font-size:clamp(22px, 7vw, 37px); letter-spacing:5px;
+      filter:drop-shadow(0 0 10px rgba(255,89,154,.9));
+      animation:heartBeat 1.5s ease-in-out infinite;
+    }
+    h1{
+      margin:0; color:#fff7fb; font-family:"Cinzel", serif;
+      font-size:clamp(32px, 10vw, 62px); font-weight:800;
+      letter-spacing:clamp(1px, .8vw, 5px); line-height:.98;
+      text-shadow:0 0 9px #fff, 0 0 26px #ff54a0, 0 0 57px #a61455;
+    }
+    .subtitle{
+      margin:10px 0 0; color:#ffdce9;
+      font-family:"Dancing Script", cursive;
+      font-size:clamp(27px, 8vw, 43px); font-weight:700;
+      text-shadow:0 0 13px rgba(255,112,173,.82);
+    }
+    .divider{
+      width:min(245px, 70%); height:2px; margin:20px auto 16px;
+      background:linear-gradient(90deg, transparent, #ffd4e4, #fff, #ffd4e4, transparent);
+      box-shadow:0 0 15px #ff5b9f;
+    }
+    .description{
+      max-width:390px; margin:0 auto 19px; color:#ffe7f0;
+      font-size:16px; font-weight:600; line-height:1.4;
+    }
+    .difficulty-badge{
+      display:inline-block; margin:0 auto 10px;
+      padding:5px 14px;
+      border:1px solid rgba(255,213,231,.4); border-radius:10px;
+      background:rgba(0,0,0,.25);
+      color:rgba(255,220,235,.9);
+      font-family:"Cinzel", serif;
+      font-size:12px; font-weight:700; letter-spacing:.5px;
+    }
+    .difficulty-badge span{ color:#ffd54a; text-transform:capitalize; }
+    .buttons{ display:flex; flex-direction:column; gap:10px; width:min(100%, 304px); margin:0 auto; }
+    .menu-button{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; min-height:51px; gap:10px; padding:10px 15px;
+      border:1px solid rgba(255,212,231,.62); border-radius:14px;
+      background:linear-gradient(180deg, #dd4686, #8b1649);
+      color:#fffaff; font-family:"Cinzel", serif;
+      font-size:13px; font-weight:800; letter-spacing:.45px;
+      text-decoration:none;
+      box-shadow:0 4px 0 #4b0829, inset 0 1px rgba(255,255,255,.27);
+      transition:transform .12s ease, filter .12s ease, opacity .2s ease;
+      cursor:pointer;
+    }
+    .menu-button.secondary{ background:linear-gradient(180deg, #9d3666, #59142f); }
+    .menu-button.gold{
+      background:linear-gradient(180deg, #e5aa34, #a2610b);
+      border-color:rgba(255,230,161,.72);
+      box-shadow:0 4px 0 #5a3305, inset 0 1px rgba(255,255,255,.25);
+    }
+    .menu-button:active{
+      transform:translateY(3px) scale(.98); filter:brightness(1.18);
+      box-shadow:0 1px 0 #4b0829, inset 0 1px rgba(255,255,255,.23);
+    }
+    .menu-button[hidden]{ display:none !important; }
+    .resume-note{ display:none; margin:-3px auto 2px; color:#d4ffe2; font-size:13px; font-weight:700; }
+    .resume-note.show{ display:block; }
+    .how{
+      display:grid; grid-template-columns:1fr 1fr; gap:8px;
+      margin:19px auto 0; padding-top:16px;
+      border-top:1px solid rgba(255,185,213,.25);
+      color:#ffe6f0; font-size:13px; text-align:left;
+    }
+    .how div{ display:flex; align-items:center; gap:7px; min-width:0; }
+    .how i{ width:17px; color:var(--pink-light); text-align:center; }
+    .footer{ margin:16px 0 0; color:rgba(255,215,233,.68); font-size:12px; font-weight:600; }
+
+    .options-modal{
+      position:fixed; inset:0; z-index:10000;
+      display:flex; align-items:center; justify-content:center;
+      padding:20px; background:rgba(13,0,8,.8);
+      opacity:0; pointer-events:none; transition:opacity .22s ease;
+      backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    }
+    .options-modal.show{ opacity:1; pointer-events:auto; }
+    .options-box{
+      position:relative; width:min(94vw, 420px);
+      max-height:calc(100dvh - 40px); overflow-y:auto;
+      padding:26px 20px 20px;
+      border:1px solid rgba(255,199,222,.56); border-radius:20px;
+      background:linear-gradient(145deg, rgba(103,19,61,.99), rgba(31,1,19,.99));
+      box-shadow:0 15px 55px rgba(0,0,0,.62), 0 0 30px rgba(255,74,146,.28);
+      text-align:center; transform:translateY(14px) scale(.96);
+      transition:transform .25s ease;
+    }
+    .options-modal.show .options-box{ transform:translateY(0) scale(1); }
+    .options-close{
+      position:absolute; top:10px; right:10px;
+      width:32px; height:32px; display:flex;
+      align-items:center; justify-content:center;
+      border:1px solid rgba(255,212,231,.32); border-radius:50%;
+      background:rgba(0,0,0,.35); color:#fff;
+      font-size:15px; cursor:pointer;
+    }
+    .options-box h2{
+      margin:0 0 6px; color:#fff3f8; font-family:"Cinzel", serif;
+      font-size:clamp(20px, 6vw, 26px); letter-spacing:1px;
+    }
+    .options-sub{ margin:0 0 18px; color:rgba(255,225,235,.82); font-size:14px; font-weight:600; }
+    .diff-list{ display:flex; flex-direction:column; gap:10px; }
+    .diff-btn{
+      display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+      padding:12px 16px;
+      border:1px solid rgba(255,212,231,.4); border-radius:14px;
+      background:linear-gradient(180deg, rgba(155,42,96,.7), rgba(63,8,35,.85));
+      color:#fff7fb; text-align:left; cursor:pointer;
+      transition:transform .12s ease, border-color .18s, box-shadow .18s, filter .12s;
+    }
+    .diff-btn:hover, .diff-btn:focus{ filter:brightness(1.15); }
+    .diff-btn.active{
+      border-color:#55dc8b;
+      box-shadow:0 0 16px rgba(85,220,139,.5), inset 0 1px rgba(255,255,255,.2);
+    }
+    .diff-btn:active{ transform:translateY(2px) scale(.98); }
+    .diff-name{ font-family:"Cinzel", serif; font-size:15px; font-weight:800; letter-spacing:.4px; }
+    .diff-desc{ font-size:12px; font-weight:600; color:rgba(255,220,235,.82); }
+
+    @keyframes menuIn{ from{ opacity:0; transform:translateY(28px) scale(.92); } to{ opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes heartBeat{ 0%,100%{ transform:scale(.96); } 50%{ transform:scale(1.08); } }
+    @keyframes glowPulse{ 0%,100%{ transform:scale(.85); opacity:.45; } 50%{ transform:scale(1.12); opacity:.9; } }
+    @keyframes mazeMove{ from{ transform:rotate(-8deg) translate3d(0,0,0); } to{ transform:rotate(-8deg) translate3d(52px,52px,0); } }
+    @keyframes sparkFloat{ 0%{ opacity:0; transform:translate3d(0,0,0) rotate(0deg); } 12%{ opacity:.9; } 100%{ opacity:0; transform:translate3d(22px,-110vh,0) rotate(140deg); } }
+
+    @media (max-width:380px){
+      .menu{ padding-top:18px; padding-bottom:18px; }
+      .description{ margin-bottom:14px; font-size:14px; }
+      .menu-button{ min-height:46px; font-size:12px; }
+      .how{ margin-top:14px; padding-top:13px; font-size:12px; }
+      .footer{ margin-top:12px; }
+    }
+    @media (prefers-reduced-motion:reduce){
+      *, *::before, *::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="maze"></div>
+  <div class="glow"></div>
+  <div id="sparks" class="sparks"></div>
+
+  <main class="menu">
+    <div class="mini-hearts">&#x1F497; &#x1F496; &#x1F498; &#x1F495;</div>
+    <h1>IL LABIRINTO<br>DI GIP</h1>
+    <p class="subtitle">Perditi. Combatti. Vinci.</p>
+    <div class="divider"></div>
+
+    <div class="difficulty-badge">Difficoltà: <span id="difficulty-label">Facile</span></div>
+
+    <p class="description">
+      Esplora i labirinti magici, raccogli le foglie,
+      apri la porta finale e sfuggi alle ombre.
+    </p>
+
+    <div class="buttons">
+      <a id="start-button" class="menu-button" href="1.html">
+        <i class="fas fa-play"></i> Nuova avventura
+      </a>
+
+      <a id="resume-button" class="menu-button gold" href="1.html" style="display:none">
+        <i class="fas fa-play-circle"></i> Riprendi partita
+      </a>
+      <p id="resume-note" class="resume-note">Partita salvata trovata.</p>
+
+      <a id="shop-button" class="menu-button secondary" href="shop.html">
+        <i class="fas fa-store"></i> Shop / Mercato
+      </a>
+
+      <button id="options-button" class="menu-button secondary" type="button">
+        <i class="fas fa-cog"></i> Opzioni
+      </button>
+
+      <button id="reset-coins-button" class="menu-button secondary" type="button">
+        <i class="fas fa-coins"></i> Reset Monete
+      </button>
+    </div>
+
+    <div class="how">
+      <div><i class="fas fa-arrows-alt"></i> Muoviti con le frecce</div>
+      <div><i class="fas fa-hand-rock"></i> Testata a distanza ravvicinata</div>
+      <div><i class="fas fa-crosshairs"></i> Spara usando munizioni</div>
+      <div><i class="fas fa-leaf"></i> Raccogli tutte le foglie</div>
+    </div>
+
+    <p class="footer">Creato da Gip</p>
+  </main>
+
+  <div id="options-modal" class="options-modal">
+    <div class="options-box">
+      <button class="options-close" id="options-close" type="button" aria-label="Chiudi">✕</button>
+      <h2>Opzioni</h2>
+      <p class="options-sub">Scegli la difficoltà</p>
+      <div class="diff-list">
+        <button class="diff-btn" data-diff="facile" type="button">
+          <span class="diff-name">Facile</span>
+          <span class="diff-desc">5 livelli · nessun proiettile nemico</span>
+        </button>
+        <button class="diff-btn" data-diff="normale" type="button">
+          <span class="diff-name">Normale</span>
+          <span class="diff-desc">10 livelli · nemici armati dall'8°</span>
+        </button>
+        <button class="diff-btn" data-diff="difficile" type="button">
+          <span class="diff-name">Difficile</span>
+          <span class="diff-desc">15 livelli · nemici armati dall'8° al 15°</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sparks = document.getElementById('sparks');
+    const symbols = ['&#x1F497;', '&#x1F496;', '&#x2726;', '&#x2727;', '&#x1F338;'];
+    for(let i = 0; i < 24; i++){
+      const spark = document.createElement('span');
+      spark.className = 'spark';
+      spark.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+      spark.style.left = (Math.random() * 100) + '%';
+      spark.style.fontSize = (13 + Math.random() * 21) + 'px';
+      spark.style.animationDuration = (4 + Math.random() * 5) + 's';
+      spark.style.animationDelay = (-Math.random() * 9) + 's';
+      sparks.appendChild(spark);
+    }
+
+    const MAX_LEVELS = { facile: 5, normale: 10, difficile: 15 };
+    function getDifficulty() {
+      try {
+        const d = localStorage.getItem('labirinto_difficulty');
+        if (d === 'normale' || d === 'difficile') return d;
+      } catch(_) {}
+      return 'facile';
+    }
+    function setDifficulty(d) {
+      try { localStorage.setItem('labirinto_difficulty', d); } catch(_) {}
+    }
+    function getMaxLevel() { return MAX_LEVELS[getDifficulty()] || 5; }
+    function labelFor(d) { return d.charAt(0).toUpperCase() + d.slice(1); }
+
+    function refreshDifficultyUI() {
+      const current = getDifficulty();
+      const label = document.getElementById('difficulty-label');
+      if (label) label.textContent = labelFor(current);
+      document.querySelectorAll('.diff-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.diff === current);
+      });
+    }
+
+    function refreshResumeButton() {
+      const state = localStorage.getItem('labirinto_state');
+      const nextUrl = localStorage.getItem('labirinto_next_url');
+      const maxLevel = getMaxLevel();
+
+      let resumeUrl = null;
+
+      if (state) {
+        try {
+          const s = JSON.parse(state);
+          if (s && s.level && s.level >= 1 && s.level <= maxLevel) resumeUrl = s.level + '.html';
+        } catch(_) {}
+      }
+      if (!resumeUrl && nextUrl) {
+        const m = nextUrl.match(/^(\d+)\.html$/);
+        if (m) {
+          const lvl = parseInt(m[1], 10);
+          if (lvl >= 1 && lvl <= maxLevel) resumeUrl = nextUrl;
+        }
+      }
+
+      const resumeBtn = document.getElementById('resume-button');
+      const resumeNote = document.getElementById('resume-note');
+      if (resumeBtn) {
+        if (resumeUrl) { resumeBtn.href = resumeUrl; resumeBtn.style.display = 'flex'; }
+        else resumeBtn.style.display = 'none';
+      }
+      if (resumeNote) resumeNote.classList.toggle('show', !!resumeUrl);
+    }
+
+    const startBtn = document.getElementById('start-button');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        try {
+          localStorage.removeItem('labirinto_state');
+          localStorage.removeItem('labirinto_resume');
+          localStorage.removeItem('labirinto_hp');
+          localStorage.removeItem('labirinto_shields');
+          localStorage.removeItem('labirinto_ammo');
+          localStorage.removeItem('labirinto_cumulative');
+          localStorage.removeItem('labirinto_next_url');
+        } catch(e) {}
+      });
+    }
+
+    const resetCoinsBtn = document.getElementById('reset-coins-button');
+    if (resetCoinsBtn) {
+      resetCoinsBtn.addEventListener('click', () => {
+        if (confirm('Sei sicuro di voler resettare tutte le monete? Questa azione è irreversibile.')) {
+          try { localStorage.setItem('labirinto_coins', '0'); alert('Monete resettate a 0.'); }
+          catch (e) { alert('Errore durante il reset delle monete.'); }
+        }
+      });
+    }
+
+    const optionsBtn = document.getElementById('options-button');
+    const optionsModal = document.getElementById('options-modal');
+    const optionsClose = document.getElementById('options-close');
+    const diffBtns = document.querySelectorAll('.diff-btn');
+
+    if (optionsBtn) {
+      optionsBtn.addEventListener('click', () => {
+        refreshDifficultyUI();
+        optionsModal.classList.add('show');
+      });
+    }
+    if (optionsClose) optionsClose.addEventListener('click', () => optionsModal.classList.remove('show'));
+    if (optionsModal) {
+      optionsModal.addEventListener('click', (e) => {
+        if (e.target === optionsModal) optionsModal.classList.remove('show');
+      });
+    }
+    diffBtns.forEach(b => {
+      b.addEventListener('click', () => {
+        setDifficulty(b.dataset.diff);
+        refreshDifficultyUI();
+        refreshResumeButton();
+        setTimeout(() => optionsModal.classList.remove('show'), 250);
+      });
+    });
+
+    refreshDifficultyUI();
+    refreshResumeButton();
+  </script>
+</body>
+</html>
